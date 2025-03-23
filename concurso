@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conjuga y Apuesta 🎲</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Montserrat', sans-serif; background-color: #f0f8ff; color: #333; }
+        .container { max-width: 700px; margin: auto; text-align: center; padding: 20px; background-color: #fff; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        h1 { color: #ff6347; font-size: 2.2em; font-weight: 600; }
+        input, button, select { padding: 10px; margin: 10px; font-size: 16px; border-radius: 8px; border: 2px solid #ff6347; }
+        button { cursor: pointer; background-color: #ff7f50; color: white; transition: 0.3s; }
+        button:hover { background-color: #ff6347; }
+        button.apuesta-btn { background-color: #ffa07a; }
+        button.apuesta-btn.selected { background-color: #ff4500; }
+        .ranking, .puntos, .contador { font-size: 18px; margin-top: 20px; }
+        .jugador { margin-bottom: 20px; border-bottom: 2px dashed #ff7f50; padding-bottom: 10px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🚀 Conjuga y Apuesta 🎲</h1>
+
+    <div id="registro">
+        <input id="nombre1" type="text" placeholder="🌟 Jugador 1">
+        <input id="nombre2" type="text" placeholder="🌟 Jugador 2">
+        <select id="numRondas">
+            <option value="5">5 🚩</option>
+            <option value="10">10 🚩</option>
+            <option value="15">15 🚩</option>
+            <option value="20">20 🚩</option>
+        </select>
+        <button onclick="iniciarJuego()">🚦 Comenzar</button>
+    </div>
+
+    <div id="juego" style="display:none;">
+        <div id="jugadorTurno" class="jugador"></div>
+        <div id="botonesApuesta">
+            <button class="apuesta-btn" onclick="seleccionarApuesta(10)">10 💰</button>
+            <button class="apuesta-btn" onclick="seleccionarApuesta(20)">20 💰</button>
+            <button class="apuesta-btn" onclick="seleccionarApuesta(30)">30 💰</button>
+            <button class="apuesta-btn" onclick="seleccionarApuesta(50)">50 💰</button>
+        </div>
+        <button onclick="mostrarPregunta()" id="btnApostar">🚀 Apostar</button>
+        <p id="pregunta"></p>
+        <input id="respuesta" type="text" placeholder="🖋️ Conjugación" style="display:none;">
+        <button onclick="comprobarRespuesta()" style="display:none;" id="btnRespuesta">✅ Enviar</button>
+
+        <div class="ranking" id="ranking"></div>
+        <div class="contador" id="contadorAciertos"></div>
+        <div class="contador" id="contadorRescates"></div>
+
+        <div id="resultadoFinal" style="display:none; font-size:22px; margin-top:20px; color:#ff6347;"></div>
+        <button id="btnRescate" style="display:none;" onclick="rescatarJugador()">🛟 Rescatar Jugador</button>
+        <button id="btnReiniciar" style="display:none;" onclick="location.reload()">🔄 Reiniciar</button>
+    </div>
+</div>
+
+<script>
+let puntos = [100, 100];
+let jugadores = ['', ''];
+let turno = 0;
+let rondasTotales = 0;
+let rondaActual = 0;
+let jugadasRealizadas = 0;
+let apuestaActual = 0;
+let aciertos = [0, 0];
+let rescates = [0, 0];
+const verbos = [
+    { verbo: 'cantar', modo: 'indicativo', tiempo: 'pretérito perfecto simple', persona: '3ª plural', respuesta: 'ellos cantaron' },
+    { verbo: 'comer', modo: 'indicativo', tiempo: 'presente', persona: '1ª singular', respuesta: 'yo como' },
+    { verbo: 'vivir', modo: 'indicativo', tiempo: 'futuro simple', persona: '2ª plural', respuesta: 'vosotros viviréis' },
+    { verbo: 'amar', modo: 'subjuntivo', tiempo: 'presente', persona: '1ª plural', respuesta: 'nosotros amemos' },
+    { verbo: 'correr', modo: 'imperativo', tiempo: 'afirmativo', persona: '2ª singular', respuesta: 'tú corre' }
+];
+let actual = {};
+
+function iniciarJuego() {
+    jugadores[0] = document.getElementById('nombre1').value;
+    jugadores[1] = document.getElementById('nombre2').value;
+    rondasTotales = parseInt(document.getElementById('numRondas').value);
+
+    if (jugadores[0] === '' || jugadores[1] === '') {
+        alert('Ambos jugadores deben ingresar su nombre');
+        return;
+    }
+
+    document.getElementById('registro').style.display = 'none';
+    document.getElementById('juego').style.display = 'block';
+    actualizarRanking();
+    prepararTurno();
+}
+
+function seleccionarApuesta(valor) {
+    apuestaActual = valor;
+    document.querySelectorAll('.apuesta-btn').forEach(btn => btn.classList.remove('selected'));
+    event.target.classList.add('selected');
+}
+
+function mostrarPregunta() {
+    if (apuestaActual === 0 || apuestaActual > puntos[turno]) {
+        alert('Selecciona una apuesta válida o insuficientes puntos');
+        return;
+    }
+    actual = verbos[Math.floor(Math.random() * verbos.length)];
+    document.getElementById('pregunta').innerText = `👉 "${actual.verbo}" (${actual.modo}, ${actual.tiempo}, ${actual.persona})`;
+    document.getElementById('respuesta').style.display = 'inline-block';
+    document.getElementById('btnRespuesta').style.display = 'inline-block';
+    document.getElementById('btnApostar').disabled = true;
+}
+
+function comprobarRespuesta() {
+    let respuestaUsuario = document.getElementById('respuesta').value.trim().toLowerCase();
+    if (respuestaUsuario === actual.respuesta) {
+        puntos[turno] += apuestaActual;
+        aciertos[turno]++;
+    } else {
+        puntos[turno] -= apuestaActual;
+    }
+    jugadasRealizadas++;
+    turno = turno === 0 ? 1 : 0;
+    apuestaActual = 0;
+    document.querySelectorAll('.apuesta-btn').forEach(btn => btn.classList.remove('selected'));
+    actualizarRanking();
+    prepararTurno();
+}
+
+function rescatarJugador() {
+    puntos = puntos.map((p, i) => {
+        if (p <= 0 && i === turno) {
+            rescates[i]++;
+            return 50;
+        }
+        return p;
+    });
+    actualizarRanking();
+    document.getElementById('btnRescate').style.display = 'none';
+}
+
+function prepararTurno() {
+    if (jugadasRealizadas >= rondasTotales * 2) {
+        let ganador = puntos[0] > puntos[1] ? jugadores[0] : puntos[1] > puntos[0] ? jugadores[1] : 'Empate';
+        document.getElementById('resultadoFinal').innerText = `🏆 Juego terminado: ${ganador}`;
+        ['botonesApuesta', 'btnApostar', 'btnRespuesta', 'respuesta', 'pregunta'].forEach(id => document.getElementById(id).style.display = 'none');
+        document.getElementById('resultadoFinal').style.display = 'block';
+        document.getElementById('btnReiniciar').style.display = 'inline-block';
+        return;
+    }
+    if (jugadasRealizadas % 2 === 0) rondaActual++;
+    document.getElementById('jugadorTurno').innerHTML = `🎯 Ronda ${rondaActual}/${rondasTotales} - ${jugadores[turno]} | 💎 ${puntos[turno]}`;
+    document.getElementById('pregunta').innerText = '';
+    document.getElementById('respuesta').value = '';
+    document.getElementById('respuesta').style.display = 'none';
+    document.getElementById('btnRespuesta').style.display = 'none';
+    document.getElementById('btnApostar').disabled = false;
+    document.getElementById('btnRescate').style.display = puntos[turno] <= 0 ? 'inline-block' : 'none';
+}
+
+function actualizarRanking() {
+    document.getElementById('ranking').innerHTML = `${jugadores[0]}: 💎${puntos[0]} | ${jugadores[1]}: 💎${puntos[1]}`;
+    document.getElementById('contadorAciertos').innerText = `✅ Aciertos: ${jugadores[0]} (${aciertos[0]}) | ${jugadores[1]} (${aciertos[1]})`;
+    document.getElementById('contadorRescates').innerText = `🛟 Rescates: ${jugadores[0]} (${rescates[0]}) | ${jugadores[1]} (${rescates[1]})`;
+}
+</script>
+</body>
+</html>
